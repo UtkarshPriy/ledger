@@ -4,7 +4,8 @@ org: selflearn20
 app: ledger
 # "service" is the name of this project. This will also be added to your AWS resource names.
 service: ledger
-
+plugins:
+  - serverless-offline
 provider:
   name: aws
   runtime: nodejs20.x
@@ -12,10 +13,24 @@ provider:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
   # domain: api.example.com
 
+  environment:
+    DB_HOST: database-1.c45w8uiygh12.us-east-1.rds.amazonaws.com
+    DB_PORT: 5432
+    DB_USER: postgres
+    DB_PASSWORD: ${env:DB_PASSWORD}
+    DB_NAME: postgres
+
 functions:
   hello:
-    handler: handler.hello
+    # handler: modules.reconcilliation.handlers.hello
+    handler: dist/modules/reconciliation/handlers/handler.hello
     events:
       - httpApi:
           path: /
           method: get
+  credit:
+    handler: dist/modules/ledger/handlers/credit.handleLedgerCredit
+    events:
+      - httpApi:
+          path: /credit
+          method: post
