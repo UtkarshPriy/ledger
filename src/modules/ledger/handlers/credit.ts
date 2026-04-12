@@ -2,7 +2,7 @@ import z, { json, number, string } from "zod";
 import { LedgerUsecase, ledgerUsecase } from "../usecases/ledgerusecase";
 export const wallteSchema = z.object({
   amount: z.number().positive(),
-  acount: z.string(),
+  account: z.string(),
   currency: z.enum(["INR", "USD", "EUR", "GBP"]),
   trn_name: z.string(),
   type: z.enum(["CREDIT", "DEBIT"]),

@@ -19,13 +19,23 @@ class LedgerUsecase {
     }
     creditAmount(input, idempotency_key) {
         return __awaiter(this, void 0, void 0, function* () {
-            const { amount, acount, currency, trn_name, type, reference_id: linked_trn, description: desc, } = input;
+            const { amount, account, currency, trn_name, type, reference_id: linked_trn, description: desc, } = input;
             // fetch Id through repo
-            const result = yield this.ledger_repo.withTransaction((client) => __awaiter(this, void 0, void 0, function* () {
-                const accountId = yield this.ledger_repo.getAccountId(acount, client);
+            const result = yield this.ledger_repo.withTransaction((dbClient) => __awaiter(this, void 0, void 0, function* () {
+                const accountId = yield this.ledger_repo.getAccountId(account, dbClient);
                 const entry = new ledger_entry_1.LedgerEntry(accountId, amount, type, currency, trn_name, idempotency_key, desc, linked_trn);
-                return yield this.ledger_repo.save(entry, client);
+                return yield this.ledger_repo.save(entry, dbClient);
             }));
+        });
+    }
+    getBalance(account) {
+        return __awaiter(this, void 0, void 0, function* () {
+            const bal = yield this.ledger_repo.withTransaction((dbClient) => __awaiter(this, void 0, void 0, function* () {
+                const accountId = yield this.ledger_repo.getAccountId(account, dbClient);
+                const bal = yield this.ledger_repo.getBalance(accountId, dbClient);
+                return bal;
+            }));
+            return bal;
         });
     }
 }

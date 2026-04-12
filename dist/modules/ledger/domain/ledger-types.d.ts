@@ -3,7 +3,7 @@ export type CurType = "INR" | "USD" | "EUR" | "GBP";
 export type EffectType = -1 | 1;
 export interface CreditInput {
     amount: number;
-    acount: string;
+    account: string;
     currency: CurType;
     trn_name: string;
     type: EntryType;

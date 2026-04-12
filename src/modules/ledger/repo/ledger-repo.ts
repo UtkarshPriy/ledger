@@ -37,11 +37,18 @@ export class LedgerRepo {
       ],
     );
   }
-  async getAccountId(account, client: PoolClient): Promise<string> {
+  async getAccountId(account: string, client: PoolClient): Promise<string> {
     const result = await client.query(
       `select account_id from accounts where account_number = $1`,
       [account],
     );
     return result.rows[0]?.account_id;
+  }
+  async getBalance(accountID: string, client: PoolClient): Promise<string> {
+    const result = await client.query(
+      `select sum(amount*balance_effect) as bal from ledger_entries where account_id = $1`,
+      [accountID],
+    );
+    return result.rows[0]?.bal;
   }
 }

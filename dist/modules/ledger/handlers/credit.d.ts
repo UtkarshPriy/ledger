@@ -1,7 +1,7 @@
 import z from "zod";
 export declare const wallteSchema: z.ZodObject<{
     amount: z.ZodNumber;
-    acount: z.ZodString;
+    account: z.ZodString;
     currency: z.ZodEnum<{
         INR: "INR";
         USD: "USD";

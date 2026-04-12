@@ -9,6 +9,7 @@ plugins:
 provider:
   name: aws
   runtime: nodejs20.x
+  stage: ${opt:stage, 'local'}
   # Uncomment to easily set up a custom domain. Read the docs for more details:
   # https://www.serverless.com/framework/docs/providers/aws/guide/domains
   # domain: api.example.com
@@ -19,6 +20,7 @@ provider:
     DB_USER: postgres
     DB_PASSWORD: ${env:DB_PASSWORD}
     DB_NAME: postgres
+    LEDGER_EVENTS_QUEUE_URL: ${env:LEDGER_EVENTS_QUEUE_URL, 'https://sqs.us-east-1.amazonaws.com/655431895004/MyQueue'}
 
 functions:
   hello:
@@ -34,3 +36,17 @@ functions:
       - httpApi:
           path: /credit
           method: post
+
+  getBalance:
+    handler: dist/modules/ledger/handlers/getBal.handlegetBalance
+    events:
+      - httpApi:
+          path: /getBalance
+          method: get
+
+resources:
+  Resources:
+    LedgerEventsQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: ledger-events-${self:provider.stage}
