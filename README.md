@@ -1,69 +1,202 @@
-<!--
-title: 'AWS Simple HTTP Endpoint example in NodeJS'
-description: 'This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.'
-layout: Doc
-framework: v4
-platform: AWS
-language: nodeJS
-authorLink: 'https://github.com/serverless'
-authorName: 'Serverless, Inc.'
-authorAvatar: 'https://avatars1.githubusercontent.com/u/13742415?s=200&v=4'
--->
+# Ledger — AWS Serverless Fintech Platform
 
-# Serverless Framework Node HTTP API on AWS
+A production-grade ledger management system built with **Node.js + TypeScript, AWS Lambda, Aurora PostgreSQL, and Serverless Framework**.
 
-This template demonstrates how to make a simple HTTP API with Node.js running on AWS Lambda and API Gateway using the Serverless Framework.
+## Features
 
-This template does not include any kind of persistence (database). For more advanced examples, check out the [serverless/examples repository](https://github.com/serverless/examples/) which includes Typescript, Mongo, DynamoDB and other examples.
+- **ACID-compliant transactions** — Multi-table Aurora transactions with automatic rollback
+- **Idempotent API operations** — DB-level idempotency keys prevent duplicate processing
+- **Audit logging** — Immutable append-only transaction history for regulatory compliance
+- **Event-driven architecture** — SQS integration for asynchronous processing
+- **Structured logging** — CloudWatch integration with request tracing
+- **Layer separation** — Handler → Usecase → Domain ← Repo pattern
 
-## Usage
+## Tech Stack
 
-### Deployment
+| Layer             | Technology                             |
+| ----------------- | -------------------------------------- |
+| **Runtime**       | Node.js 20 + TypeScript                |
+| **Infra**         | AWS Lambda + API Gateway (HTTP API v2) |
+| **Database**      | Amazon Aurora (PostgreSQL)             |
+| **Cache**         | ElastiCache (Redis)                    |
+| **Queue**         | SQS + SNS                              |
+| **Auth**          | Amazon Cognito (JWT)                   |
+| **Observability** | CloudWatch + X-Ray tracing             |
+| **IaC**           | Serverless Framework v4                |
 
-In order to deploy the example, you need to run the following command:
-
-```
-serverless deploy
-```
-
-After running deploy, you should see output similar to:
+## Project Structure
 
 ```
-Deploying "serverless-http-api" to stage "dev" (us-east-1)
-
-✔ Service deployed to stack serverless-http-api-dev (91s)
-
-endpoint: GET - https://xxxxxxxxxx.execute-api.us-east-1.amazonaws.com/
-functions:
-  hello: serverless-http-api-dev-hello (1.6 kB)
+src/
+├── modules/
+│   ├── ledger/           # Ledger operations (credit, debit, balance)
+│   ├── transaction/      # Transaction management
+│   ├── user/            # User & account management
+│   └── events/          # Domain events & SQS handlers
+└── shared/
+    ├── db/              # Aurora connection pooling
+    ├── cache/           # Redis client
+    ├── logger/          # Structured logging
+    └── errors/          # Fintech error types
 ```
 
-_Note_: In current form, after deployment, your API is public and can be invoked by anyone. For production deployments, you might want to configure an authorizer. For details on how to do that, refer to [HTTP API (API Gateway V2) event docs](https://www.serverless.com/framework/docs/providers/aws/events/http-api).
+## Setup
 
-### Invocation
+### Prerequisites
 
-After successful deployment, you can call the created application via HTTP:
+- Node.js 20+
+- AWS CLI configured
+- Aurora PostgreSQL cluster
+- Serverless Framework: `npm i -g serverless`
 
+### Local Development
+
+1. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+2. **Set environment variables:**
+
+   ```bash
+   export DB_PASSWORD="your-password"
+   ```
+
+3. **Run locally:**
+
+   ```bash
+   npm run build
+   sls offline
+   ```
+
+   API available at `http://localhost:3000`
+
+## API Endpoints
+
+### Credit
+
+```http
+POST /credit
+idempotency-key: unique-id
+Content-Type: application/json
+
+{
+  "account": "ACC123",
+  "amount": 1000,
+  "currency": "INR",
+  "type": "CREDIT",
+  "trn_name": "salary_deposit",
+  "description": "Monthly salary"
+}
 ```
-curl https://xxxxxxx.execute-api.us-east-1.amazonaws.com/
+
+### Debit
+
+```http
+POST /debit
+idempotency-key: unique-id
+Content-Type: application/json
+
+{
+  "account": "ACC123",
+  "amount": 500,
+  "currency": "INR",
+  "type": "DEBIT",
+  "trn_name": "withdrawal",
+  "description": "ATM withdrawal"
+}
 ```
 
-Which should result in response similar to:
+### Get Balance
+
+```http
+GET /getBalance?account=ACC123
+```
+
+Response:
 
 ```json
-{ "message": "Go Serverless v4! Your function executed successfully!" }
+{
+  "balance": 4500,
+  "currency": "INR",
+  "lastUpdated": "2024-04-12T10:30:00Z"
+}
 ```
 
-### Local development
+## Key Design Patterns
 
-The easiest way to develop and test your function is to use the `dev` command:
+### Idempotency
 
+All write operations require an `idempotency-key` header. The same key replayed returns the same result without duplicate processing.
+
+### ACID Transactions
+
+```typescript
+await repo.withTransaction(async (client) => {
+  const accountId = await repo.getAccountId(account, client);
+  await repo.save(entry, client);
+  // Auto-COMMIT or ROLLBACK
+});
 ```
-serverless dev
+
+### Layer Separation
+
+- **Handler** — HTTP validation only
+- **Usecase** — Business logic orchestration
+- **Repo** — Database operations only
+- **Domain** — Pure business rules (zero external dependencies)
+
+## Deployment
+
+```bash
+# Dev
+serverless deploy --stage dev
+
+# Production
+serverless deploy --stage prod
 ```
 
-This will start a local emulator of AWS Lambda and tunnel your requests to and from AWS Lambda, allowing you to interact with your function as if it were running in the cloud.
+## Logging
 
-Now you can invoke the function as before, but this time the function will be executed locally. Now you can develop your function locally, invoke it, and see the results immediately without having to re-deploy.
+All operations log to CloudWatch with structure:
 
-When you are done developing, don't forget to run `serverless deploy` to deploy the function to the cloud.
+```json
+{
+  "level": "INFO",
+  "message": "creditAmount started",
+  "timestamp": "2024-04-12T10:30:00Z",
+  "requestId": "uuid-xxx",
+  "accountId": "account-uuid",
+  "amount": 1000
+}
+```
+
+**Note:** No PII is logged (names, full account numbers, etc.) — compliance requirement.
+
+## Security
+
+- Credentials via AWS Secrets Manager (never env vars)
+- JWT validation via API Gateway authorizer
+- Least-privilege IAM roles per function
+- Database: SSL/TLS encryption in transit
+
+## Monitoring
+
+- **CloudWatch Logs** — All function executions
+- **X-Ray Tracing** — Request flow across services
+- **CloudWatch Metrics** — Transaction volume, latency, errors
+
+## Contributing
+
+1. Branch naming: `feature/xxx` or `fix/xxx`
+2. Commit messages: Follow conventional commits
+3. Code review required before merge to `master`
+
+## License
+
+Proprietary — Utkarsh Priy
+
+## Contact
+
+For questions, reach out via GitHub issues.
