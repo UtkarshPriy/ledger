@@ -1,4 +1,4 @@
-import { number, string } from "zod";
+import { any, number, string } from "zod";
 import { LedgerEntry } from "../domain/ledger-entry";
 import { CreditInput } from "../domain/ledger-types";
 import { LedgerRepo } from "../repo/ledger-repo";
@@ -7,7 +7,7 @@ export class LedgerUsecase {
   async creditAmount(input: CreditInput, idempotency_key) {
     const {
       amount,
-      acount,
+      account,
       currency,
       trn_name,
       type,
@@ -15,8 +15,8 @@ export class LedgerUsecase {
       description: desc,
     } = input;
     // fetch Id through repo
-    const result = await this.ledger_repo.withTransaction(async (client) => {
-      const accountId = await this.ledger_repo.getAccountId(acount, client);
+    const result = await this.ledger_repo.withTransaction(async (dbClient) => {
+      const accountId = await this.ledger_repo.getAccountId(account, dbClient);
       const entry = new LedgerEntry(
         accountId,
         amount,
@@ -28,8 +28,16 @@ export class LedgerUsecase {
         linked_trn,
       );
 
-      return await this.ledger_repo.save(entry, client);
+      return await this.ledger_repo.save(entry, dbClient);
     });
+  }
+  async getBalance(account: string) {
+    const bal = await this.ledger_repo.withTransaction(async (dbClient) => {
+      const accountId = await this.ledger_repo.getAccountId(account, dbClient);
+      const bal = await this.ledger_repo.getBalance(accountId, dbClient);
+      return bal;
+    });
+    return bal;
   }
 }
 

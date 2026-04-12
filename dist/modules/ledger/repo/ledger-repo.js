@@ -54,6 +54,13 @@ class LedgerRepo {
             return (_a = result.rows[0]) === null || _a === void 0 ? void 0 : _a.account_id;
         });
     }
+    getBalance(accountID, client) {
+        return __awaiter(this, void 0, void 0, function* () {
+            var _a;
+            const result = yield client.query(`select sum(amount*balance_effect) as bal from ledger_entries where account_id = $1`, [accountID]);
+            return (_a = result.rows[0]) === null || _a === void 0 ? void 0 : _a.bal;
+        });
+    }
 }
 exports.LedgerRepo = LedgerRepo;
 //# sourceMappingURL=ledger-repo.js.map

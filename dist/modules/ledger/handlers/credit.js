@@ -18,7 +18,7 @@ const zod_1 = __importDefault(require("zod"));
 const ledgerusecase_1 = require("../usecases/ledgerusecase");
 exports.wallteSchema = zod_1.default.object({
     amount: zod_1.default.number().positive(),
-    acount: zod_1.default.string(),
+    account: zod_1.default.string(),
     currency: zod_1.default.enum(["INR", "USD", "EUR", "GBP"]),
     trn_name: zod_1.default.string(),
     type: zod_1.default.enum(["CREDIT", "DEBIT"]),
